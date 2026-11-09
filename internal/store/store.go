@@ -2,12 +2,14 @@ package store
 
 import (
 	"context"
+	"errors"
 	"io"
 	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 const albumsPrefix = "album/"
@@ -132,4 +134,61 @@ func (s *Store) DownloadPhoto(ctx context.Context, album, filename string, w io.
 	defer resp.Body.Close()
 	_, err = io.Copy(w, resp.Body)
 	return err
+}
+
+func (s *Store) PhotoExists(ctx context.Context, album, filename string) (bool, error) {
+	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(albumPrefix(album) + filename),
+	})
+	if err != nil {
+		var nf *types.NotFound
+		if errors.As(err, &nf) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (s *Store) DeletePhoto(ctx context.Context, album, filename string) error {
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(albumPrefix(album) + filename),
+	})
+	return err
+}
+
+func (s *Store) DeleteAlbum(ctx context.Context, album string) error {
+	prefix := albumPrefix(album)
+	paginator := s3.NewListObjectsV2Paginator(s.client, &s3.ListObjectsV2Input{
+		Bucket: aws.String(s.bucket),
+		Prefix: aws.String(prefix),
+	})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return err
+		}
+		if len(page.Contents) == 0 {
+			continue
+		}
+		var ids []types.ObjectIdentifier
+		for _, obj := range page.Contents {
+			if obj.Key != nil {
+				ids = append(ids, types.ObjectIdentifier{Key: obj.Key})
+			}
+		}
+		if len(ids) == 0 {
+			continue
+		}
+		_, err = s.client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+			Bucket: aws.String(s.bucket),
+			Delete: &types.Delete{Objects: ids},
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

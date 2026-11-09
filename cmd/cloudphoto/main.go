@@ -205,7 +205,46 @@ func runDownload(cfg *env.Config, args []string) error {
 }
 
 func runDelete(cfg *env.Config, args []string) error {
-	return fmt.Errorf("delete: не реализовано")
+	fs := flag.NewFlagSet("delete", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	album := fs.String("album", "", "")
+	photo := fs.String("photo", "", "")
+	if err := fs.Parse(args); err != nil || fs.NArg() != 0 {
+		return fmt.Errorf("Ошибка в аргументах")
+	}
+	if *album == "" || strings.Contains(*album, "/") {
+		return fmt.Errorf("Ошибка в аргументах")
+	}
+	if *photo != "" && strings.Contains(*photo, "/") {
+		return fmt.Errorf("Ошибка в аргументах")
+	}
+
+	st, err := newStore(cfg)
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	exists, err := st.AlbumExists(ctx, *album)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("В фотоархиве нет альбома с именем %s", *album)
+	}
+
+	if *photo == "" {
+		return st.DeleteAlbum(ctx, *album)
+	}
+
+	photoExists, err := st.PhotoExists(ctx, *album, *photo)
+	if err != nil {
+		return err
+	}
+	if !photoExists {
+		return fmt.Errorf("В фотоархиве нет фотографии с именем %s", *photo)
+	}
+	return st.DeletePhoto(ctx, *album, *photo)
 }
 
 func runMksite(cfg *env.Config, args []string) error {
