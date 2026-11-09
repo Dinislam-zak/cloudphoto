@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -191,4 +192,33 @@ func (s *Store) DeleteAlbum(ctx context.Context, album string) error {
 		}
 	}
 	return nil
+}
+
+func (s *Store) SetPublicRead(ctx context.Context) error {
+	_, err := s.client.PutBucketAcl(ctx, &s3.PutBucketAclInput{
+		Bucket: aws.String(s.bucket),
+		ACL:    types.BucketCannedACLPublicRead,
+	})
+	return err
+}
+
+func (s *Store) SetWebsiteConfig(ctx context.Context) error {
+	_, err := s.client.PutBucketWebsite(ctx, &s3.PutBucketWebsiteInput{
+		Bucket: aws.String(s.bucket),
+		WebsiteConfiguration: &types.WebsiteConfiguration{
+			IndexDocument: &types.IndexDocument{Suffix: aws.String("index.html")},
+			ErrorDocument: &types.ErrorDocument{Key: aws.String("error.html")},
+		},
+	})
+	return err
+}
+
+func (s *Store) PutPage(ctx context.Context, key string, content []byte) error {
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(key),
+		Body:        bytes.NewReader(content),
+		ContentType: aws.String("text/html; charset=utf-8"),
+	})
+	return err
 }

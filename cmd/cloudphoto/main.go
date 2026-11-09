@@ -11,6 +11,7 @@ import (
 
 	"cloudphoto/internal/env"
 	"cloudphoto/internal/s3client"
+	"cloudphoto/internal/site"
 	"cloudphoto/internal/store"
 )
 
@@ -248,5 +249,47 @@ func runDelete(cfg *env.Config, args []string) error {
 }
 
 func runMksite(cfg *env.Config, args []string) error {
-	return fmt.Errorf("mksite: не реализовано")
+	fs := flag.NewFlagSet("mksite", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	if err := fs.Parse(args); err != nil || fs.NArg() != 0 {
+		return fmt.Errorf("Ошибка в аргументах")
+	}
+
+	st, err := newStore(cfg)
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	if err := st.SetPublicRead(ctx); err != nil {
+		return fmt.Errorf("Не удалось настроить публичный доступ: %v", err)
+	}
+
+	if err := st.SetWebsiteConfig(ctx); err != nil {
+		return fmt.Errorf("Не удалось настроить хостинг: %v", err)
+	}
+
+	albums, err := st.ListAlbums(ctx)
+	if err != nil {
+		return err
+	}
+
+	for i, album := range albums {
+		photos, err := st.ListPhotos(ctx, album)
+		if err != nil {
+			return err
+		}
+		page := site.RenderAlbum(album, photos)
+		if err := st.PutPage(ctx, fmt.Sprintf("album%d.html", i+1), page); err != nil {
+			return fmt.Errorf("Не удалось загрузить album%d.html: %v", i+1, err)
+		}
+	}
+
+	if err := st.PutPage(ctx, "index.html", site.RenderIndex(albums)); err != nil {
+		return fmt.Errorf("Не удалось загрузить index.html: %v", err)
+	}
+	if err := st.PutPage(ctx, "error.html", site.RenderError()); err != nil {
+		return fmt.Errorf("Не удалось загрузить error.html: %v", err)
+	}
+	return nil
 }

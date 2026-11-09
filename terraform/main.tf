@@ -20,6 +20,12 @@ resource "yandex_storage_bucket" "photos" {
   https {
     certificate_id = var.cert_id
   }
+  lifecycle {
+    ignore_changes = [
+      website,
+      anonymous_access_flags,
+    ]
+  }
 
 }
 
