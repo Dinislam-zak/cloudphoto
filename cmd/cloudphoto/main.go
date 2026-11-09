@@ -155,7 +155,53 @@ func runUpload(cfg *env.Config, args []string) error {
 }
 
 func runDownload(cfg *env.Config, args []string) error {
-	return fmt.Errorf("download: не реализовано")
+	fs := flag.NewFlagSet("download", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	album := fs.String("album", "", "")
+	path := fs.String("path", ".", "")
+	if err := fs.Parse(args); err != nil || fs.NArg() != 0 {
+		return fmt.Errorf("Ошибка в аргументах")
+	}
+	if *album == "" {
+		return fmt.Errorf("Ошибка в аргументах")
+	}
+
+	st, err := newStore(cfg)
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	exists, err := st.AlbumExists(ctx, *album)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("В фотоархиве нет альбома с именем %s", *album)
+	}
+
+	info, err := os.Stat(*path)
+	if err != nil || !info.IsDir() {
+		return fmt.Errorf("Каталог %s не доступен для сохранения файлов", *path)
+	}
+
+	photos, err := st.ListPhotos(ctx, *album)
+	if err != nil {
+		return err
+	}
+
+	for _, name := range photos {
+		f, err := os.Create(filepath.Join(*path, name))
+		if err != nil {
+			return fmt.Errorf("Не удалось сохранить %s: %v", name, err)
+		}
+		dlErr := st.DownloadPhoto(ctx, *album, name, f)
+		f.Close()
+		if dlErr != nil {
+			return fmt.Errorf("Не удалось скачать %s: %v", name, dlErr)
+		}
+	}
+	return nil
 }
 
 func runDelete(cfg *env.Config, args []string) error {

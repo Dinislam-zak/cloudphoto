@@ -120,3 +120,16 @@ func (s *Store) UploadPhoto(ctx context.Context, album, filename string, body io
 	})
 	return err
 }
+
+func (s *Store) DownloadPhoto(ctx context.Context, album, filename string, w io.Writer) error {
+	resp, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(albumPrefix(album) + filename),
+	})
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	_, err = io.Copy(w, resp.Body)
+	return err
+}
