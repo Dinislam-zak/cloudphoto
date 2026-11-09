@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"io"
 	"sort"
 	"strings"
 
@@ -92,4 +93,30 @@ func (s *Store) ListPhotos(ctx context.Context, album string) ([]string, error) 
 	}
 	sort.Strings(photos)
 	return photos, nil
+}
+
+func (s *Store) EnsureAlbum(ctx context.Context, album string) error {
+	exists, err := s.AlbumExists(ctx, album)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(markerKey(album)),
+		Body:   strings.NewReader(""),
+	})
+	return err
+}
+
+func (s *Store) UploadPhoto(ctx context.Context, album, filename string, body io.Reader) error {
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(albumPrefix(album) + filename),
+		Body:        body,
+		ContentType: aws.String("image/jpeg"),
+	})
+	return err
 }
