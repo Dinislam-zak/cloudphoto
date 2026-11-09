@@ -1,0 +1,6 @@
+# terraform/terraform.tfvars.example
+folder_id   = "ВАШ_FOLDER_ID"
+bucket_name = "ВАШ_УНИКАЛЬНЫЙ_БАКЕТ"
+domain      = "vvotNN.itiscl.ru"
+cert_id     = "ВАШ_CERT_ID"
+dns_zone_id = "ВАШ_DNS_ZONE_ID"

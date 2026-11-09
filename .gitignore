@@ -11,6 +11,7 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+terraform.tfvars
 
 # Секреты
 *.pem
@@ -20,7 +21,6 @@ terraform.rc
 .env.*
 
 # Go
-cloudphoto
 /cloudphoto
 *.test
 *.out
