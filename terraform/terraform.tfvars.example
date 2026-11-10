@@ -1,6 +1,5 @@
-# terraform/terraform.tfvars.example
 folder_id   = "ВАШ_FOLDER_ID"
-bucket_name = "ВАШ_УНИКАЛЬНЫЙ_БАКЕТ"
+bucket_name = "photos.vvotNN.itiscl.ru"    # FQDN, обязательно с точками
 domain      = "vvotNN.itiscl.ru"
 cert_id     = "ВАШ_CERT_ID"
 dns_zone_id = "ВАШ_DNS_ZONE_ID"
