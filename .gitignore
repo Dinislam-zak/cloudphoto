@@ -35,3 +35,6 @@ terraform.tfvars
 # OS
 .DS_Store
 Thumbs.db
+
+# Media
+/demo_photos

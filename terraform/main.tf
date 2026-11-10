@@ -34,7 +34,7 @@ resource "yandex_dns_recordset" "photos" {
   name    = "photos"
   type    = "CNAME"
   ttl     = 3600
-  data = ["photos.vvot16.itiscl.ru.website.yandexcloud.net."]
+  data = ["${var.bucket_name}.website.yandexcloud.net."]
 }
 
 

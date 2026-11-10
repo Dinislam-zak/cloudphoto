@@ -14,7 +14,7 @@
 
 | Переменная | Значение |
 |---|---|
-| `BUCKET` | Имя бакета (`vvot16-photos-2026`) |
+| `BUCKET` | Имя бакета (`photos.vvot16.itiscl.ru`) |
 | `AWS_ACCESS_KEY_ID` | Статический ключ сервисного аккаунта |
 | `AWS_SECRET_ACCESS_KEY` | Секретная часть статического ключа |
 
@@ -51,7 +51,12 @@ terraform init
 terraform apply
 ```
 
-После `apply` подождите 1–5 минут, пока DNS-запись `photos.<domain>` распространится. Сайт заработает после `cloudphoto mksite`.
+> **Про имя бакета.** Yandex Object Storage применяет пользовательский
+> сертификат к кастомному домену только если имя бакета — FQDN
+> (содержит точку). Поэтому `bucket_name = "photos.vvotNN.itiscl.ru"`,
+> а CNAME `<zone>` указывает на `<bucket_name>.website.yandexcloud.net.`.
+
+После `apply` подождите 1–5 минут, пока DNS-запись `photos.<domain>` распространится, и до 30 минут — пока Yandex разложит сертификат на edge-серверы. Сайт заработает после `cloudphoto mksite`.
 
 **Не запускайте `terraform apply` после `mksite` без необходимости.** `mksite` настраивает `website` и публичный ACL бакета, они исключены из управления Terraform через `lifecycle.ignore_changes`.
 
@@ -98,7 +103,7 @@ cloudphoto mksite
 ## Тесты
 
 ```bash
-export BUCKET=vvot16-photos-2026
+export BUCKET=photos.vvot16.itiscl.ru
 export AWS_ACCESS_KEY_ID=$(cat ~/.cloudphoto_access_key)
 export AWS_SECRET_ACCESS_KEY=$(cat ~/.cloudphoto_secret_key)
 
